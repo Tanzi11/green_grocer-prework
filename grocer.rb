@@ -1,11 +1,12 @@
-def consolidate_cart(cart)
+
+def consolidate_cart(cart) 
   consolidated_hash = {}
   cart.each do |item|
     item.each do |item_name, item_hash|
         if consolidated_hash.key?(item_name) == false
           consolidated_hash[item_name] = item_hash
           consolidated_hash[item_name][:count] = 1
-        else
+        else 
           consolidated_hash[item_name][:count] += 1
         end
     end
@@ -13,89 +14,83 @@ def consolidate_cart(cart)
   consolidated_hash
 end
 
-def apply_coupons(cart, coupon_array)
-  if cart.size == 0
-    return cart
-  elsif coupon_array.size == 0
-    return cart
-  else
-    consolidated_coupons_hash = {}
-    coupon_array.each do |coupon|
-      item_name = coupon[:item]
-      if consolidated_coupons_hash.key?(item_name) == false
-        coupon = coupon.merge({coupon_count: 1})
-        consolidated_coupons_hash[item_name] = coupon
-      else
-          consolidated_coupons_hash[item_name][:num] += coupon[:num]
-          consolidated_coupons_hash[item_name][:coupon_count] += 1
-      end
-    end
-    consolidated_coupons_hash.each do |consolidated_key, value|
-      if cart.key?(consolidated_key)
-        consolidated_coupon_number = consolidated_coupons_hash[consolidated_key][:num]
-        cart_item_count = cart[consolidated_key][:count]
-        coupon_item_price = consolidated_coupons_hash[consolidated_key][:cost]
-        coupon_count = consolidated_coupons_hash[consolidated_key][:coupon_count]
-        cart_item_count_after_coupon = cart_item_count - consolidated_coupon_number
-        cart_item_clearance = cart[consolidated_key][:clearance]
-        
-        cart[consolidated_key][:count] = cart_item_count_after_coupon
-        cart["#{consolidated_key} W/COUPON"] = {price: coupon_item_price, clearance: cart_item_clearance, count: coupon_count}
-        #if cart[consolidated_key][:count] == 0
-          #cart.delete(consolidated_key)
-        #end
-      end
-    end
-  end
-  cart
-end
-
-def apply_clearance(cart)
-  cart.each do |item_name, item_hash|
-    if item_hash[:clearance] == true
-      #puts item_name
-      clearance_price = item_hash[:price] - (item_hash[:price] * 0.2)
-      item_hash[:price] = clearance_price
-    end
-  end
-  cart
-end
-
-def checkout(cart, coupons)
-  total = 0
-  cart = consolidate_cart(cart)
-  coupons_applied = apply_coupons(cart, coupons)
-  
-  clearance_applied = apply_clearance(coupons_applied)
-  #puts clearance_applied
-  clearance_applied.each do |item, item_hash|
-    if item_hash[:count] < 0 
-      item_hash[:count] = -(item_hash[:count])
-    end
-    if !item.include?('W/COUPON')
-      if clearance_applied[item][:count] < clearance_applied["#{item} W/COUPON"][:count]
-        clearance_applied["#{item} W/COUPON"][:count] = clearance_applied[item][:count]
-      end
-    end
-    #if clearance_applied[item][:count] < clearance_applied["#{item} W/COUPON"][:count]
-      #clearance_applied["#{item} W/COUPON"][:count] = clearance_applied[item][:count]
-    #end
-    total += (item_hash[:price] * item_hash[:count])
-    puts total
-  end
-  if total >= 100
-    total = total - (total *0.10)
-  else 
-    total
-  end
-end
-
-coupons = [{:item => "BEER", :num => 2, :cost => 20.00}, {:item => "BEER", :num => 2, :cost => 20.00}]
-
 cart = [
-  {"BEER" => {:price => 13.00, :clearance => false}},
-  {"BEER" => {:price => 13.00, :clearance => false}},
-  {"BEER" => {:price => 13.00, :clearance => false}}
+  {"AVOCADO" => {:price => 3.0, :clearance => true }},
+  {"AVOCADO" => {:price => 3.0, :clearance => true }},
+  {"KALE"    => {:price => 3.0, :clearance => false}}
 ]
 
-checkout(cart, coupons)
+#consolidate_cart(cart)
+#######################################################################################
+
+def apply_coupons(cart, coupons)
+  if coupons.size <= 0
+    return cart
+  else
+    consolidated_coupon_hash = {}
+    more_consolidated_hash = {}
+    consolidated_coupon_array = []
+    coupons.each do |coupon_hash|
+      coupon_name = coupon_hash[:item]
+      if consolidated_coupon_hash.key?(coupon_name) == false
+        consolidated_coupon_hash[coupon_name] =  coupon_hash
+      else 
+        consolidated_coupon_hash[coupon_name][:num] += coupon_hash[:num]
+      end
+    end
+    consolidated_coupon_hash.each do |item_name, item_hash_consolidated|
+    consolidated_coupon_array << item_hash_consolidated
+    end
+    consolidated_coupon_array.each do |coupon|
+      if cart.key?(coupon[:item]) == false
+      else
+        coupon_name = coupon[:item]
+        coupon_number = coupon[:num]
+        coupon_cost = coupon[:cost]
+        item_clearance = cart[coupon_name][:clearance]
+        cart["#{coupon_name} W/COUPON"] = {price: coupon_cost, clearance: item_clearance, count: coupon_number}
+        item_in_cart_after_coupons = cart[coupon_name][:count] - coupon_number
+        cart[coupon_name][:count] = item_in_cart_after_coupons
+        if cart[coupon_name][:count] <= 0
+          cart.delete(coupon_name)
+          cart["#{coupon_name} W/COUPON"][:count] = 1
+        else
+          cart["#{coupon_name} W/COUPON"][:count] = 1
+        end
+      end
+    end
+  end
+  #puts consolidated_coupon_hash
+end
+
+cart = {
+  "AVOCADO" => {:price => 3.0, :clearance => true, :count => 10},
+  "KALE"    => {:price => 3.0, :clearance => false, :count => 4}
+}
+
+coupon = [{:item => "AVOCADO", :num => 3, :cost => 5.0}, {:item => "AVOCADO", :num => 8, :cost => 5.0}, {:item => "KALE", :num => 2, :cost => 3.0}, {:item => "KALE", :num => 2, :cost => 3.0}, {:item => "AVOCADO", :num => 10, :cost => 5.0}, {:item => "KALE", :num => 6, :cost => 3.0}, {:item => "CHEESE", :num => 2, :cost => 3.0}]
+
+
+apply_coupons(cart, coupon)  
+
+def consolidate_coupons(coupons_array)
+  consolidated_cooupon_hash = {}
+  more_consolidated_hash = {}
+  consolidated_cooupon_array = []
+  coupons_array.each do |coupon_hash|
+    #puts coupon_hash
+    coupon_name = coupon_hash[:item]
+    if consolidated_cooupon_hash.key?(coupon_name) == false
+      consolidated_cooupon_hash[coupon_name] =  coupon_hash
+    end
+  end
+  #consolidated_coupon_hash.each do |item_name, item_hash_consolidated|
+    #consolidated_cooupon_array << item_hash_consolidated
+  #end
+  #consolidated_cooupon_array
+  consolidated_cooupon_hash
+end
+
+#consolidate coupons then change the cart array to reflect the consolidated + applied coupons 
+consolidate_coupons(coupon)
+
